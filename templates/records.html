@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Records | StaffHub{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <h1>Records</h1>
+    <a class="button" href="{{ url_for('new_record') }}">Submit New Record</a>
+</div>
+
+<section class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Department</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record["id"] }}</td>
+                <td><a href="{{ url_for('record_detail', record_id=record['id']) }}">{{ record["title"] }}</a></td>
+                <td>{{ record["category"] }}</td>
+                <td>{{ record["priority"] }}</td>
+                <td>{{ record["status"] }}</td>
+                <td>{{ record["owner_name"] }}</td>
+                <td>{{ record["owner_department"] }}</td>
+                <td>{{ record["created_at"] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8">No records found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} | StaffHub{% endblock %}
+{% block content %}
+<section class="card narrow-card">
+    <h1>Error {{ code }}</h1>
+    <p>{{ message }}</p>
+    {% if g.current_user %}
+        <p><a href="{{ url_for('dashboard') }}">Return to dashboard</a></p>
+    {% else %}
+        <p><a href="{{ url_for('login') }}">Return to login</a></p>
+    {% endif %}
+</section>
+{% endblock %}

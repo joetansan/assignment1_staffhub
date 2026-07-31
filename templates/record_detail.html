@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Record {{ record["id"] }} | StaffHub{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>{{ record["title"] }}</h1>
+    <dl class="details">
+        <dt>Record ID</dt><dd>{{ record["id"] }}</dd>
+        <dt>Category</dt><dd>{{ record["category"] }}</dd>
+        <dt>Priority</dt><dd>{{ record["priority"] }}</dd>
+        <dt>Status</dt><dd>{{ record["status"] }}</dd>
+        <dt>Owner</dt><dd>{{ record["owner_name"] }}</dd>
+        <dt>Department</dt><dd>{{ record["owner_department"] }}</dd>
+        <dt>Created</dt><dd>{{ record["created_at"] }}</dd>
+    </dl>
+
+    <h2>Description</h2>
+    <div class="record-description">{{ record["description"]|safe }}</div>
+</section>
+{% endblock %}

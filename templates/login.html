@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Login | StaffHub{% endblock %}
+{% block content %}
+<section class="card narrow-card">
+    <h1>StaffHub Login</h1>
+    <p class="muted">Use one of the test accounts listed in the README.</p>
+    <form method="post" class="stacked-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+        <button type="submit">Login</button>
+    </form>
+</section>
+{% endblock %}

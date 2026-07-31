@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | StaffHub{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p>Welcome, {{ g.current_user["full_name"] }}.</p>
+
+<section class="grid three-cols">
+    <div class="card metric">
+        <span class="metric-value">{{ total_records }}</span>
+        <span class="metric-label">Total records</span>
+    </div>
+    <div class="card metric">
+        <span class="metric-value">{{ open_records }}</span>
+        <span class="metric-label">Open records</span>
+    </div>
+    <div class="card metric">
+        <span class="metric-value">{{ my_records }}</span>
+        <span class="metric-label">My records</span>
+    </div>
+</section>
+
+<section class="card">
+    <h2>StaffHub Areas</h2>
+    <p>The starter app includes basic records and profile pages. Your assigned variation may require you to add or modify pages, routes, forms, templates, and database tables.</p>
+    <ul>
+        <li>Records workflow: submission, listing, and details.</li>
+        <li>User account/profile workflow.</li>
+        <li>Dashboard or management areas, where appropriate.</li>
+    </ul>
+</section>
+{% endblock %}

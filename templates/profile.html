@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Profile | StaffHub{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Profile</h1>
+    <dl class="details">
+        <dt>Name</dt><dd>{{ g.current_user["full_name"] }}</dd>
+        <dt>Username</dt><dd>{{ g.current_user["username"] }}</dd>
+        <dt>Role</dt><dd>{{ g.current_user["role"] }}</dd>
+        <dt>Department</dt><dd>{{ g.current_user["department"] }}</dd>
+        <dt>Email</dt><dd>{{ g.current_user["email"] }}</dd>
+    </dl>
+</section>
+{% endblock %}

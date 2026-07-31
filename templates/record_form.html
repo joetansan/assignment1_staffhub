@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}New Record | StaffHub{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Submit New Record</h1>
+    <form method="post" class="stacked-form">
+        <label for="title">Title</label>
+        <input id="title" name="title" maxlength="120" required>
+
+        <label for="category">Category</label>
+        <input id="category" name="category" placeholder="e.g. IT Support" required>
+
+        <label for="priority">Priority</label>
+        <select id="priority" name="priority">
+            <option>Low</option>
+            <option selected>Medium</option>
+            <option>High</option>
+            <option>Urgent</option>
+        </select>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="6" required></textarea>
+
+        <button type="submit">Submit Record</button>
+    </form>
+</section>
+{% endblock %}
