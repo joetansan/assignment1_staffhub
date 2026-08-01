@@ -21,6 +21,9 @@ from config import DATABASE_PATH, SECRET_KEY
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    # added session cookie flags
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["DATABASE"] = DATABASE_PATH
 
