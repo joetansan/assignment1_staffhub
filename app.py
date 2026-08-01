@@ -22,8 +22,8 @@ from config import DATABASE_PATH, SECRET_KEY
 def create_app() -> Flask:
     app = Flask(__name__)
     # added session cookie flags
-    app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True        # against xss, block client side scripts accessing session cookie
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"       # control when cookies are sent w/ cross-site requests, lax = block on cross-site subrequests
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["DATABASE"] = DATABASE_PATH
 
@@ -74,11 +74,30 @@ def create_app() -> Flask:
     @app.route("/dashboard")
     @login_required
     def dashboard():
-        total_records = query_one("SELECT COUNT(*) AS count FROM records")["count"]
-        open_records = query_one("SELECT COUNT(*) AS count FROM records WHERE status != ?", ("Closed",))["count"]
+        user = g.current_user
+        # scope dashboard counts so it only counts records able to be seen
+        if user["role"] == "Admin":
+            total_records = query_one("SELECT COUNT(*) AS count FROM records")["count"]
+            open_records = query_one("SELECT COUNT(*) AS count FROM records WHERE status != ?", ("Closed",))["count"]
+        elif user["role"] == "Manager":
+            total_records = query_one(
+                "SELECT COUNT(*) AS count FROM records JOIN users ON records.owner_id = users.id WHERE users.department = ?",
+                (user["department"],),
+            )["count"]
+            open_records = query_one(
+                "SELECT COUNT(*) AS count FROM records JOIN users ON records.owner_id = users.id WHERE users.department = ? AND records.status != ?",
+                (user["department"], "Closed"),
+            )["count"]
+        else:
+            total_records = query_one("SELECT COUNT(*) AS count FROM records WHERE owner_id = ?", (user["id"],))["count"]
+            open_records = query_one(
+                "SELECT COUNT(*) AS count FROM records WHERE owner_id = ? AND status != ?",
+                (user["id"], "Closed"),
+            )["count"]
+
         my_records = query_one(
             "SELECT COUNT(*) AS count FROM records WHERE owner_id = ?",
-            (g.current_user["id"],),
+            (user["id"],),
         )["count"]
 
         return render_template(
@@ -91,17 +110,38 @@ def create_app() -> Flask:
     @app.route("/records")
     @login_required
     def records():
-        # Starter behaviour: this list is deliberately broad.
-        # Students should review whether the final application enforces appropriate role, ownership,
-        # department, and scope rules for their assignment.
-        rows = query_all(
-            """
-            SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
-            FROM records
-            JOIN users ON records.owner_id = users.id
-            ORDER BY records.created_at DESC
-            """
-        )
+        user = g.current_user
+        if user["role"] == "Admin": # all records
+            rows = query_all(
+                """
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                FROM records
+                JOIN users ON records.owner_id = users.id
+                ORDER BY records.created_at DESC
+                """
+            )
+        elif user["role"] == "Manager": # records from manager's own department only
+            rows = query_all(
+                """
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                FROM records
+                JOIN users ON records.owner_id = users.id
+                WHERE users.department = ?
+                ORDER BY records.created_at DESC
+                """,
+                (user["department"],),
+            )
+        else: # employee, only own records
+            rows = query_all( 
+                """
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                FROM records
+                JOIN users ON records.owner_id = users.id
+                WHERE records.owner_id = ?
+                ORDER BY records.created_at DESC
+                """,
+                (user["id"],),
+            )
         return render_template("records.html", records=rows)
 
     @app.route("/records/new", methods=["GET", "POST"])
@@ -135,6 +175,7 @@ def create_app() -> Flask:
     def record_detail(record_id: int):
         # Starter behaviour: record lookup is intentionally simple.
         # Students should review the required access rules for the final application.
+        user = g.current_user
         record = query_one(
             """
             SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
@@ -148,12 +189,23 @@ def create_app() -> Flask:
         if record is None:
             abort(404)
 
+        if user["role"] == "Employee" and record["owner_id"] != user["id"]:
+            abort(403)
+
+        if user["role"] == "Manager" and record["owner_department"] != user["department"]:
+            abort(403)
+
         return render_template("record_detail.html", record=record)
 
     @app.route("/profile")
     @login_required
     def profile():
         return render_template("profile.html")
+
+    # error handler for 400
+    @app.errorhandler(400)
+    def bad_request(error):
+        return render_template("error.html", code=400, message="The request was invalid or missing required security data.")
 
     @app.errorhandler(403)
     def forbidden(error):
@@ -192,7 +244,6 @@ def current_timestamp() -> str:
     from datetime import datetime
 
     return datetime.now().replace(microsecond=0).isoformat(sep=" ")
-
 
 def get_current_user() -> sqlite3.Row | None:
     user_id = session.get("user_id")
