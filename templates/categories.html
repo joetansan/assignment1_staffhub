@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Categories | StaffHub{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <h1>Record Categories</h1>
+    <a class="button" href="{{ url_for('new_category') }}">New Category</a>
+</div>
+
+<section class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>{{ category["id"] }}</td>
+                <td>{{ category["name"] }}</td>
+                <td>{{ category["description"] }}</td>
+                <td>{{ category["status"] }}</td>
+                <td>{{ category["created_at"] }}</td>
+                <td>
+                    <a class="button" href="{{ url_for('edit_category', category_id=category['id']) }}">Edit</a>
+                    {% if category["status"] == "Active" %}
+                    <form method="post" action="{{ url_for('category_status', category_id=category['id']) }}" class="inline-form">
+                        <input type="hidden" name="action" value="retire">
+                        <button type="submit" class="button">Retire</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{{ url_for('category_status', category_id=category['id']) }}" class="inline-form">
+                        <input type="hidden" name="action" value="activate">
+                        <button type="submit" class="button">Activate</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No categories found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

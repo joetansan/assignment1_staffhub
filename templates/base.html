@@ -15,6 +15,9 @@
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('records') }}">Records</a>
                 <a href="{{ url_for('new_record') }}">New Record</a>
+                {% if g.current_user["role"] == "Admin" %}
+                <a href="{{ url_for('categories') }}">Categories</a>
+                {% endif %}
                 <a href="{{ url_for('profile') }}">Profile</a>
                 <form method="post" action="{{ url_for('logout') }}" class="inline-form">
                     <button type="submit" class="link-button">Logout</button>

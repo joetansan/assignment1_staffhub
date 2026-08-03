@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Category' if category else 'New Category' }} | StaffHub{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>{{ 'Edit Category' if category else 'New Category' }}</h1>
+    <form method="post" class="stacked-form">
+        <label for="name">Category name</label>
+        <input id="name" name="name" maxlength="50" value="{{ name or '' }}" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4" maxlength="200">{{ description or '' }}</textarea>
+
+        <button type="submit">{{ 'Save Changes' if category else 'Create Category' }}</button>
+        <a class="button" href="{{ url_for('categories') }}">Cancel</a>
+    </form>
+</section>
+{% endblock %}

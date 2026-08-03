@@ -228,6 +228,151 @@ def create_app() -> Flask:
 
         return render_template("record_detail.html", record=record)
 
+    @app.route("/categories")
+    @login_required
+    def categories():
+        user = g.current_user
+        if not is_admin(user):
+            abort(403)
+        rows = query_all(
+            """
+            SELECT * FROM categories
+            ORDER BY status ASC, name ASC
+            """
+        )
+        return render_template("categories.html", categories=rows)
+
+    @app.route("/categories/new", methods=["GET", "POST"])
+    @login_required
+    def new_category():
+        user = g.current_user
+        if not is_admin(user):
+            abort(403)
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            description = request.form.get("description", "").strip()
+
+            errors = []
+            if not name:
+                errors.append("Category name is required.")
+            elif len(name) > 50:
+                errors.append("Category name must be 50 characters or fewer.")
+            if len(description) > 200:
+                errors.append("Description must be 200 characters or fewer.")
+
+            if not errors:
+                existing = query_one("SELECT id FROM categories WHERE name = ?", (name,))
+                if existing is not None:
+                    errors.append("A category with this name already exists.")
+
+            if errors:
+                for message in errors:
+                    flash(message, "error")
+                return render_template("category_form.html", category=None, name=name, description=description), 400
+
+            now = current_timestamp()
+            db = get_db()
+            db.execute(
+                """
+                INSERT INTO categories (name, description, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (name, description, "Active", now, now)
+            )
+            db.commit()
+            log_audit_event("ADMIN_ACTION", "Info", f"Category '{name}' created.")
+            flash("Category created.", "success")
+            return redirect(url_for("categories"))
+
+        return render_template("category_form.html", category=None, name="", description="")
+
+    @app.route("/categories/<int:category_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit_category(category_id: int):
+        user = g.current_user
+        if not is_admin(user):
+            abort(403)
+        category = query_one("SELECT * FROM categories WHERE id = ?", (category_id,))
+        if category is None:
+            abort(404)
+
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            description = request.form.get("description", "").strip()
+
+            errors = []
+            if not name:
+                errors.append("Category name is required.")
+            elif len(name) > 50:
+                errors.append("Category name must be 50 characters or fewer.")
+            if len(description) > 200:
+                errors.append("Description must be 200 characters or fewer.")
+
+            if not errors:
+                existing = query_one(
+                    "SELECT id FROM categories WHERE name = ? AND id != ?",
+                    (name, category_id),
+                )
+                if existing is not None:
+                    errors.append("A category with this name already exists.")
+
+            if errors:
+                for message in errors:
+                    flash(message, "error")
+                return render_template("category_form.html", category=category, name=name, description=description), 400
+
+            db = get_db()
+            db.execute(
+                """
+                UPDATE categories SET name = ?, description = ?, updated_at = ?
+                where id = ?
+                """,
+                (name, description, current_timestamp(), category_id),
+            )
+            db.commit()
+            log_audit_event("ADMIN_ACTION", "Info", f"Category '{name}' updated.")
+            flash("Category updated", "success")
+            return redirect(url_for("categories"))
+
+        return render_template(
+            "category_form.html",
+            category=category,
+            name=category["name"],
+            description=category["description"],
+        )
+
+    @app.route("/categories/<int:category_id>/status", methods=["POST"])
+    @login_required
+    def category_status(category_id: int):
+        user = g.current_user
+        if not is_admin(user):
+            abort(403)
+        category = query_one("SELECT * FROM categories WHERE id = ?", (category_id,))
+        if category is None:
+            abort(404)
+
+        action = request.form.get("action", "")
+        if action == "retire" and category["status"] == "Active":
+            new_status = "Retired"
+        elif action == "activate" and category["status"] == "Retired":
+            new_status = "Active"
+        else:
+            flash("Invalid category status action.", "error")
+            return redirect(url_for("categories"))
+
+        db = get_db()
+        db.execute(
+            """
+            UPDATE categories SET status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (new_status, current_timestamp(), category_id),
+        )
+        db.commit()
+        log_audit_event("ADMIN_ACTION", "Info", f"Category '{category['name']}' was set to {new_status}.")
+        flash(f"Category '{category['name']}' is now {new_status}.", "success")
+        return redirect(url_for("categories"))
+
     @app.route("/profile")
     @login_required
     def profile():
