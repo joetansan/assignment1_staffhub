@@ -5,21 +5,21 @@
     <h1>Submit New Record</h1>
     <form method="post" class="stacked-form">
         <label for="title">Title</label>
-        <input id="title" name="title" maxlength="120" required>
+        <input id="title" name="title" maxlength="120" value="{{ title or '' }}" required>
 
         <label for="category">Category</label>
-        <input id="category" name="category" placeholder="e.g. IT Support" required>
+        <input id="category" name="category" placeholder="e.g. IT Support" maxlength="50" value="{{ category or '' }}" required>
 
         <label for="priority">Priority</label>
         <select id="priority" name="priority">
-            <option>Low</option>
-            <option selected>Medium</option>
-            <option>High</option>
-            <option>Urgent</option>
+            <option value="Low" {% if priority == 'Low' %}selected{% endif %}>Low</option>
+            <option value="Medium" {% if priority == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="High" {% if priority == "High" %}selected{% endif %}>High</option>
+            <option value="Urgent" {% if priority == "Urgent" %}selected{% endif %}>Urgent</option>
         </select>
 
         <label for="description">Description</label>
-        <textarea id="description" name="description" rows="6" required></textarea>
+        <textarea id="description" name="description" rows="6" maxlength="2000" required>{{ description or '' }}</textarea>
 
         <button type="submit">Submit Record</button>
     </form>

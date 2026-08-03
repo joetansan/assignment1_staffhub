@@ -18,6 +18,7 @@ from werkzeug.security import check_password_hash
 
 from config import DATABASE_PATH, SECRET_KEY
 
+ALLOWED_PRIORITIES = ("Low", "Medium", "High", "Urgent")
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -55,6 +56,7 @@ def create_app() -> Flask:
             )
 
             if user is None or not check_password_hash(user["password_hash"], password):
+                log_audit_event("LOGIN_FAILED", "Warning", f"Failed login attempt for username '{username}'.")
                 flash("Invalid username or password.", "error")
                 return render_template("login.html"), 401
 
@@ -147,13 +149,42 @@ def create_app() -> Flask:
     @app.route("/records/new", methods=["GET", "POST"])
     @login_required
     def new_record():
+        user = g.current_user
         if request.method == "POST":
             # Starter behaviour: minimal processing only.
             # Students should apply appropriate validation and secure control flow before submission.
-            title = request.form.get("title", "")
-            category = request.form.get("category", "")
-            description = request.form.get("description", "")
+            title = request.form.get("title", "").strip()
+            category = request.form.get("category", "").strip()
+            description = request.form.get("description", "").strip()
             priority = request.form.get("priority", "Medium")
+
+            errors = []
+            if not title:
+                errors.append("Title is required.")
+            elif len(title) > 120:
+                errors.append("Title must be 120 characters or fewer.")
+            if not category:
+                errors.append("Category is required.")
+            elif len(category) > 50:
+                errors.append("Category must be 50 characters or fewer.")
+            if not description:
+                errors.append("Description is required.")
+            elif len(description) > 2000:
+                errors.append("Description must be 2000 characters or fewer.")
+            if priority not in ALLOWED_PRIORITIES:
+                errors.append("Priority must be either Low, Medium, High, or Urgent.")
+
+            if errors:
+                log_audit_event("INVALID_INPUT", "Warning", "Record submission rejected due to invalid input")
+                for message in errors:
+                    flash(message, "error")
+                return render_template(
+                    "record_form.html",
+                    title=title,
+                    category=category,
+                    description=description,
+                    priority=priority,
+                ), 400
 
             now = current_timestamp()
             db = get_db()
@@ -162,7 +193,7 @@ def create_app() -> Flask:
                 INSERT INTO records (owner_id, title, category, description, priority, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (g.current_user["id"], title, category, description, priority, "Open", now, now),
+                (user["id"], title, category, description, priority, "Open", now, now),
             )
             db.commit()
             flash("Record submitted.", "success")
@@ -209,6 +240,7 @@ def create_app() -> Flask:
 
     @app.errorhandler(403)
     def forbidden(error):
+        log_audit_event("ACCESS_DENIED", "Warning", "Access to a protected area was denied.")
         return render_template("error.html", code=403, message="You are not allowed to access this page."), 403
 
     @app.errorhandler(404)
@@ -217,6 +249,7 @@ def create_app() -> Flask:
 
     @app.errorhandler(500)
     def server_error(error):
+        app.logger.exception("Unhandled exception while processing a request.")
         return render_template("error.html", code=500, message="An unexpected error occurred."), 500
 
     return app
@@ -244,6 +277,24 @@ def current_timestamp() -> str:
     from datetime import datetime
 
     return datetime.now().replace(microsecond=0).isoformat(sep=" ")
+
+def log_audit_event(event_type: str, severity: str, message: str) -> None:
+    user = g.get("current_user")
+    actor_username = user["username"] if user else "Anonymous"
+    department = user["department"] if user else "Unknown"
+    db = get_db()
+    db.execute(
+        """
+        INSERT INTO audit_events (event_type, severity, department, actor_username, message, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (event_type, severity, department, actor_username, message, current_timestamp()),
+    )
+    db.commit()
+    app.logger.warning(
+        "event=%s severity=%s actor=%s department=%s message=%s",
+        event_type, severity, actor_username, department, message,
+    )
 
 def get_current_user() -> sqlite3.Row | None:
     user_id = session.get("user_id")
