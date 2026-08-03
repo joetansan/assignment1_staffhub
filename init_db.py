@@ -37,6 +37,19 @@ def reset_database() -> None:
 
     cur.execute(
         """
+        CREATE TABLE categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'Active',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cur.execute(
+        """
         CREATE TABLE records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             owner_id INTEGER NOT NULL,
@@ -85,6 +98,25 @@ def reset_database() -> None:
     )
 
     now = datetime.now().replace(microsecond=0)
+    categories = [
+        ("IT Support", "Issues with computers, software, and network access.", "Active"),
+        ("Facilities", "Problems with rooms, equipment, and building services.", "Active"),
+        ("HR", "Questions about payroll, leave, and staff matters.", "Active"),
+        ("Finance", "Expenses, allowances, and billing enquiries.", "Active"),
+        ("General Enquiry", "Other general questions that do not fit other categories.", "Active"),
+    ]
+
+    cur.executemany(
+        """
+        INSERT INTO categories (name, description, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            (name, description, status, now.isoformat(sep=" "), now.isoformat(sep=" "))
+            for name, description, status in categories
+        ],
+    )
+
     records = [
         (1, "Laptop replacement request", "IT Support", "My staff laptop battery drains quickly.", "Medium", "Open", now - timedelta(days=8)),
         (2, "Projector issue in seminar room", "Facilities", "The projector in Room B-204 flickers during lessons.", "High", "Open", now - timedelta(days=6)),
