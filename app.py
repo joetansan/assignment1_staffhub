@@ -116,18 +116,22 @@ def create_app() -> Flask:
         if user["role"] == "Admin": # all records
             rows = query_all(
                 """
-                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department,
+                        categories.name AS category_name
                 FROM records
                 JOIN users ON records.owner_id = users.id
+                JOIN categories ON records.category_id = categories.id
                 ORDER BY records.created_at DESC
                 """
             )
         elif user["role"] == "Manager": # records from manager's own department only
             rows = query_all(
                 """
-                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department,
+                        categories.name AS category_name
                 FROM records
                 JOIN users ON records.owner_id = users.id
+                JOIN categories ON records.category_id = categories.id
                 WHERE users.department = ?
                 ORDER BY records.created_at DESC
                 """,
@@ -136,9 +140,11 @@ def create_app() -> Flask:
         else: # employee, only own records
             rows = query_all( 
                 """
-                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+                SELECT records.*, users.full_name AS owner_name, users.department AS owner_department,
+                        categories.name AS category_name
                 FROM records
                 JOIN users ON records.owner_id = users.id
+                JOIN categories ON records.category_id = categories.id
                 WHERE records.owner_id = ?
                 ORDER BY records.created_at DESC
                 """,
@@ -149,24 +155,42 @@ def create_app() -> Flask:
     @app.route("/records/new", methods=["GET", "POST"])
     @login_required
     def new_record():
+
+        active_categories = query_all(
+            """
+            SELECT id, name FROM categories
+            WHERE status = 'Active'
+            ORDER BY name
+            """
+        )
+
         user = g.current_user
         if request.method == "POST":
             # Starter behaviour: minimal processing only.
             # Students should apply appropriate validation and secure control flow before submission.
             title = request.form.get("title", "").strip()
-            category = request.form.get("category", "").strip()
             description = request.form.get("description", "").strip()
             priority = request.form.get("priority", "Medium")
+
+            try:
+                category_id = int(request.form.get("category_id", ""))
+            except ValueError:
+                category_id = None
 
             errors = []
             if not title:
                 errors.append("Title is required.")
             elif len(title) > 120:
                 errors.append("Title must be 120 characters or fewer.")
-            if not category:
-                errors.append("Category is required.")
-            elif len(category) > 50:
-                errors.append("Category must be 50 characters or fewer.")
+            if category_id is None:
+                errors.append("Please select a category.")
+            else:
+                category = query_one(
+                    "SELECT id, name, status FROM categories WHERE id = ?",
+                    (category_id,),
+                )
+                if category is None or category["status"] != "Active":
+                    errors.append("Please select a valid active category.")
             if not description:
                 errors.append("Description is required.")
             elif len(description) > 2000:
@@ -180,8 +204,9 @@ def create_app() -> Flask:
                     flash(message, "error")
                 return render_template(
                     "record_form.html",
+                    categories=active_categories,
                     title=title,
-                    category=category,
+                    category_id=category_id,
                     description=description,
                     priority=priority,
                 ), 400
@@ -190,16 +215,23 @@ def create_app() -> Flask:
             db = get_db()
             db.execute(
                 """
-                INSERT INTO records (owner_id, title, category, description, priority, status, created_at, updated_at)
+                INSERT INTO records (owner_id, title, category_id, description, priority, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user["id"], title, category, description, priority, "Open", now, now),
+                (user["id"], title, category_id, description, priority, "Open", now, now),
             )
             db.commit()
             flash("Record submitted.", "success")
             return redirect(url_for("records"))
 
-        return render_template("record_form.html")
+        return render_template(
+            "record_form.html",
+            categories=active_categories,
+            title="",
+            category_id=None,
+            description="",
+            priority="Medium",
+        ), 400
 
     @app.route("/records/<int:record_id>")
     @login_required
@@ -209,9 +241,11 @@ def create_app() -> Flask:
         user = g.current_user
         record = query_one(
             """
-            SELECT records.*, users.full_name AS owner_name, users.department AS owner_department
+            SELECT records.*, users.full_name AS owner_name, users.department AS owner_department,
+                    categories.name AS category_name
             FROM records
             JOIN users ON records.owner_id = users.id
+            JOIN categories ON records.category_id = categories.id
             WHERE records.id = ?
             """,
             (record_id,),

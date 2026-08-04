@@ -7,8 +7,13 @@
         <label for="title">Title</label>
         <input id="title" name="title" maxlength="120" value="{{ title or '' }}" required>
 
-        <label for="category">Category</label>
-        <input id="category" name="category" placeholder="e.g. IT Support" maxlength="50" value="{{ category or '' }}" required>
+        <label for="category_id">Category</label>
+        <select id="category_id" name="category_id" required>
+            <option value="">Select a category</option>
+            {% for cat in categories %}
+            <option value="{{ cat['id'] }}" {% if category_id == cat['id'] %}selected{% endif %}>{{ cat['name'] }}</option>
+            {% endfor %}
+        </select>
 
         <label for="priority">Priority</label>
         <select id="priority" name="priority">

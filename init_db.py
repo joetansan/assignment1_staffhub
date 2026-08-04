@@ -54,13 +54,14 @@ def reset_database() -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             owner_id INTEGER NOT NULL,
             title TEXT NOT NULL,
-            category TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
             description TEXT NOT NULL,
             priority TEXT NOT NULL,
             status TEXT NOT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY (owner_id) REFERENCES users(id)
+            FOREIGN KEY (owner_id) REFERENCES users(id),
+            FOREIGN KEY (category_id) REFERENCES categories(id)
         )
         """
     )
@@ -118,17 +119,17 @@ def reset_database() -> None:
     )
 
     records = [
-        (1, "Laptop replacement request", "IT Support", "My staff laptop battery drains quickly.", "Medium", "Open", now - timedelta(days=8)),
-        (2, "Projector issue in seminar room", "Facilities", "The projector in Room B-204 flickers during lessons.", "High", "Open", now - timedelta(days=6)),
-        (2, "VPN access problem", "IT Support", "I cannot access the internal VPN after password reset.", "High", "Pending Review", now - timedelta(days=4)),
-        (1, "Payroll enquiry", "HR", "I need clarification on an allowance entry.", "Low", "Closed", now - timedelta(days=3)),
+        (1, "Laptop replacement request", 1, "My staff laptop battery drains quickly.", "Medium", "Open", now - timedelta(days=8)),
+        (2, "Projector issue in seminar room", 2, "The projector in Room B-204 flickers during lessons.", "High", "Open", now - timedelta(days=6)),
+        (2, "VPN access problem", 1, "I cannot access the internal VPN after password reset.", "High", "Pending Review", now - timedelta(days=4)),
+        (1, "Payroll enquiry", 3, "I need clarification on an allowance entry.", "Low", "Closed", now - timedelta(days=3)),
     ]
 
     for owner_id, title, category, description, priority, status, created_at in records:
         created = created_at.isoformat(sep=" ")
         cur.execute(
             """
-            INSERT INTO records (owner_id, title, category, description, priority, status, created_at, updated_at)
+            INSERT INTO records (owner_id, title, category_id, description, priority, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (owner_id, title, category, description, priority, status, created, created),
