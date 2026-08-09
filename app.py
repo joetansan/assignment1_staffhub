@@ -110,7 +110,7 @@ def create_app() -> Flask:
             my_records=my_records,
         )
 
-    @app.route("/records")
+    @app.route("/records") # /records 
     @login_required
     def records():
         user = g.current_user
@@ -153,7 +153,7 @@ def create_app() -> Flask:
             )
         return render_template("records.html", records=rows)
 
-    @app.route("/records/new", methods=["GET", "POST"])
+    @app.route("/records/new", methods=["GET", "POST"]) # /records/new 
     @login_required
     def new_record():
 
@@ -234,7 +234,7 @@ def create_app() -> Flask:
             priority="Medium",
         ), 400
 
-    @app.route("/records/<int:record_id>")
+    @app.route("/records/<int:record_id>") # /records
     @login_required
     def record_detail(record_id: int):
         # Starter behaviour: record lookup is intentionally simple.
@@ -277,7 +277,7 @@ def create_app() -> Flask:
         )
         return render_template("categories.html", categories=rows)
 
-    @app.route("/categories/new", methods=["GET", "POST"])
+    @app.route("/categories/new", methods=["GET", "POST"]) # /categories/new 
     @login_required
     def new_category():
         user = g.current_user
@@ -321,7 +321,7 @@ def create_app() -> Flask:
 
         return render_template("category_form.html", category=None, name="", description="")
 
-    @app.route("/categories/<int:category_id>/edit", methods=["GET", "POST"])
+    @app.route("/categories/<int:category_id>/edit", methods=["GET", "POST"]) # /categories/?/edit 
     @login_required
     def edit_category(category_id: int):
         user = g.current_user
@@ -376,7 +376,7 @@ def create_app() -> Flask:
             description=category["description"],
         )
 
-    @app.route("/categories/<int:category_id>/status", methods=["POST"])
+    @app.route("/categories/<int:category_id>/status", methods=["POST"]) # /categories/?/status
     @login_required
     def category_status(category_id: int):
         user = g.current_user
@@ -413,7 +413,7 @@ def create_app() -> Flask:
     def profile():
         return render_template("profile.html")
 
-    # error handler for 400
+    # error handlers
     @app.errorhandler(400)
     def bad_request(error):
         return render_template("error.html", code=400, message="The request was invalid or missing required security data.")
@@ -512,4 +512,4 @@ def is_manager(user: sqlite3.Row | None) -> bool:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1") # bandit finding 1, finding 2 in config.py
