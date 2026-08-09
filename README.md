@@ -1,6 +1,6 @@
 # StaffHub Starter Application
 
-This is the starter application for the IT2512 Practical Assignment: Secure Application Project.
+IT2512 Application Security — ICA3 Practical Assignment (Variation A: Record Category Management)
 
 The application is intentionally simple. It is provided so that you can run, inspect, secure, test, and extend a StaffHub-style Flask application.
 
@@ -12,13 +12,15 @@ StaffHub is an internal web application used by employees, managers, and adminis
 
 The starter application currently includes:
 
-- login and logout;
-- a dashboard;
-- record submission;
-- record listing;
-- record details;
-- a basic profile page;
-- a seeded audit event table for students assigned the audit event viewer variation.
+- login and logout with session cookie hardening (HttpOnly, SameSite);
+- a dashboard scoped to the user's role;
+- record submission, listing, and details;
+- role-based and ownership-based access control (employees see own records, managers see their department, admins see all);
+- record category management (admin-only: create, edit, retire, activate);
+- server-side input validation and allowlist checks;
+- safe display of user content (Jinja auto-escaping);
+- audit logging of security-relevant events (audit_events table + application log);
+- a seeded audit event table with sample events.
 
 Your assignment may require you to create or modify routes, templates, forms, database tables, database queries, validation logic, access-control checks, and supporting code.
 
@@ -51,6 +53,12 @@ After starting the app, open the local address shown in the terminal, usually:
 ```text
 http://127.0.0.1:5000
 ```
+
+The app runs with the Flask debugger disabled by default. For development (auto-reload and detailed error pages), set FLASK_DEBUG to 1 first:
+
+```powershell
+$env:FLASK_DEBUG="1"
+python app.py
 
 ## 3. Resetting the Database
 
@@ -87,6 +95,8 @@ staffhub_starter/
 ├── init_db.py
 ├── requirements.txt
 ├── README.md
+├── bandit_report.txt            # SAST output (initial scan)
+├── bandit_report_final.txt      # SAST output (after remediation)
 ├── static/
 │   └── styles.css
 ├── templates/
@@ -154,3 +164,6 @@ Useful commit or change-log milestones include:
 - assigned variation template or form changes;
 - testing and remediation changes;
 - final submission cleanup.
+
+## 10. Security and SAST Notes
+- Security-relevant events (invalid input, failed logins, denied access, admin actions) are recorded in the audit_events table and in the application log.
