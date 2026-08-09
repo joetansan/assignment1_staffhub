@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from functools import wraps
 from pathlib import Path
@@ -511,4 +512,4 @@ def is_manager(user: sqlite3.Row | None) -> bool:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")
